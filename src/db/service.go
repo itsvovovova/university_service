@@ -1,29 +1,33 @@
 package db
 
-func get_user_schedule(login int) (map[string]string, error) {
+func GetUserSchedule(login int) (map[string]string, error) {
 	return map[string]string{}, nil
 }
 
-func get_user_deadlines(login int) (map[string]string, error) {
+func GetUserDeadlines(login int) (map[string]string, error) {
 	return map[string]string{}, nil
 }
 
-func get_active_users() (map[string]string, error) {
+func GetActiveUsers() (map[string]string, error) {
 	return map[string]string{}, nil
 }
 
-func get_user_score() (map[string]string, error) {
+func GetUserScore() (map[string]string, error) {
 	return map[string]string{}, nil
 }
 
-func update_user_schedule(login int, new_schedule map[string]string) error {
+func UpdateUserSchedule(login int, new_schedule map[string]string) error {
 	return nil
 }
 
-func update_user_deadlines(login int, new_deadlines map[string]string) error {
+func UpdateUserDeadlines(login int, new_deadlines map[string]string) error {
 	return nil
 }
 
-func update_active_users(users map[string]string) error {
+func UpdateActiveUsers(users map[string]string) error {
 	return nil
 }
+
+func GetUsers(login int) (map[string]string, error) { return map[string]string{}, nil }
+
+func ExistUser(chat_id int) (bool, error) { return true, nil }

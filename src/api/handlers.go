@@ -3,24 +3,24 @@ package api
 import "net/http"
 
 /*
-	r.Get("/schedule", get_schedule)
-	r.Get("/deadlines", get_deadlines)
-	r.Get("/users", get_active_users)
-	r.Get("/score", get_score)
+	r.Get("/schedule", Get_schedule)
+	r.Get("/deadlines", Get_deadlines)
+	r.Get("/users", Get_active_users)
+	r.Get("/score", Get_score)
 */
 
-func get_schedule(w http.ResponseWriter, r *http.Request) map[string]string {
-	return map[string]string{}
+func Schedule(w http.ResponseWriter, r *http.Request) {
+
 }
 
-func get_deadlines(w http.ResponseWriter, r *http.Request) map[string]string {
-	return map[string]string{}
+func ListDeadlines(w http.ResponseWriter, r *http.Request) {
+
 }
 
-func get_active_users(w http.ResponseWriter, r *http.Request) map[string]string {
-	return map[string]string{}
+func ListActiveUsers(w http.ResponseWriter, r *http.Request) {
+
 }
 
-func get_scores(w http.ResponseWriter, r *http.Request) map[string]string {
-	return map[string]string{}
+func ListScores(w http.ResponseWriter, r *http.Request) {
+
 }
