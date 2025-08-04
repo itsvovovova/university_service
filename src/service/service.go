@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/go-telegram/bot"
+	"github.com/go-telegram/bot/models"
 	"io"
 	"log"
 	"net/http"
@@ -37,7 +38,7 @@ func getTokenFromCookie(cookies []http.Cookie, token string) (string, error) {
 	return "", errors.New("cookie not found")
 }
 
-func LoginLk(ctx context.Context, login string, password string) (types.LoginResponse, error) {
+func LoginLk(ctx context.Context, b *bot.Bot, update *models.Update) {
 	url := "https://lk.gubkin.ru/new/api/api.php?module=auth&method=login"
 	request := types.LoginRequest{
 		Login:      login,
@@ -86,7 +87,7 @@ func LoginEdu(login int, password string) error {
 	return nil
 }
 
-func SendMessageWithRetries(ctx context.Context, b *bot.Bot, message string, chatID string, retries int) {
+func SendMessageWithRetries(ctx context.Context, b *bot.Bot, message string, chatID int64, retries int) {
 	for i := 0; i < retries; i++ {
 		if _, err := b.SendMessage(ctx, &bot.SendMessageParams{
 			ChatID: chatID,
