@@ -60,8 +60,7 @@ func AddPasswordEduUser(password string) error {
 	return nil
 }
 
-func AddUser() error {
-	return nil
+func AddUserInfo() {
 }
 
 func GetUserState() (string, error) {

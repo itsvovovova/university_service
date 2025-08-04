@@ -32,7 +32,9 @@ deadlines table (
 );
 */
 
-func Schedule(ctx context.Context, b *bot.Bot, update *models.Update) {}
+func Schedule(ctx context.Context, b *bot.Bot, update *models.Update) {
+
+}
 
 func ListDeadlines(ctx context.Context, b *bot.Bot, update *models.Update) {
 

@@ -49,5 +49,7 @@ func PasswordEdu(ctx context.Context, b *bot.Bot, update *models.Update) {
 	if err := db.UpdateUserState("success"); err != nil {
 		service.SendMessageWithRetries(
 			ctx, b, config.ServerErrorText, update.Message.Chat.ID, config.MaxRetries)
+		fmt.Println(config.StateDbErrorText)
 	}
+	db.AddUserInfo()
 }
