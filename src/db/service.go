@@ -1,6 +1,6 @@
 package db
 
-func GetUserSchedule(login int) (map[string]string, error) {
+func GetUserSchedule(chatID int64) (map[string]string, error) {
 	return map[string]string{}, nil
 }
 

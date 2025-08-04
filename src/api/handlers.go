@@ -2,8 +2,13 @@ package api
 
 import (
 	"context"
+	"fmt"
 	"github.com/go-telegram/bot"
 	"github.com/go-telegram/bot/models"
+	"strings"
+	"university_bot/config"
+	"university_bot/src/db"
+	"university_bot/src/service"
 )
 
 /*
@@ -33,7 +38,16 @@ deadlines table (
 */
 
 func Schedule(ctx context.Context, b *bot.Bot, update *models.Update) {
-
+	schedule, err := db.GetUserSchedule(update.Message.Chat.ID)
+	if err != nil {
+		service.SendMessageWithRetries(ctx, b, config.ServerErrorText, update.Message.Chat.ID, config.MaxRetries)
+		fmt.Println(config.GetScheduleErrorText)
+	}
+	var resultText strings.Builder
+	for object := range schedule {
+		resultText.WriteString(fmt.Sprintf("%s: %s баллов\n", object, schedule[object]))
+	}
+	service.SendMessageWithRetries(ctx, b, resultText.String(), update.Message.Chat.ID, config.MaxRetries)
 }
 
 func ListDeadlines(ctx context.Context, b *bot.Bot, update *models.Update) {
