@@ -8,8 +8,8 @@ func GetUserDeadlines(login int) (map[string]string, error) {
 	return map[string]string{}, nil
 }
 
-func GetActiveUsers() (map[string]string, error) {
-	return map[string]string{}, nil
+func GetActiveUsers() (int, error) {
+	return 0, nil
 }
 
 func GetUserScore() (map[string]string, error) {
