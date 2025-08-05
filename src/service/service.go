@@ -12,6 +12,8 @@ import (
 	"log"
 	"net/http"
 	"time"
+	"university_bot/config"
+	"university_bot/src/db"
 	"university_bot/src/types"
 )
 
@@ -38,48 +40,106 @@ func getTokenFromCookie(cookies []http.Cookie, token string) (string, error) {
 	return "", errors.New("cookie not found")
 }
 
-func LoginLk(ctx context.Context, b *bot.Bot, update *models.Update) {
-	url := "https://lk.gubkin.ru/new/api/api.php?module=auth&method=login"
-	request := types.LoginRequest{
-		Login:      login,
-		Password:   password,
-		RememberMe: "1",
+func getUserInfo(ctx context.Context, b *bot.Bot, update *models.Update) (string, string, error) {
+	chatID := update.Message.Chat.ID
+	login, err := db.GetUserLogin(chatID)
+	if err != nil {
+		SendMessageWithRetries(ctx, b, config.ServerErrorText, chatID, config.MaxRetries)
+		fmt.Println(config.GetUserLoginErrorText)
+		return "", "", err
 	}
+	password, err := db.GetUserPasswordLk(chatID)
+	if err != nil {
+		SendMessageWithRetries(ctx, b, config.ServerErrorText, chatID, config.MaxRetries)
+		fmt.Println(config.GetUserPasswordLkErrorText)
+		return "", "", err
+	}
+	return login, password, nil
+}
+
+func sendPostRequest(ctx context.Context, b *bot.Bot, update *models.Update, request types.LoginRequest) (*http.Response, error) {
+	chatID := update.Message.Chat.ID
+	url := "https://lk.gubkin.ru/new/api/api.php?module=auth&method=login"
 	data, err := json.Marshal(request)
 	if err != nil {
-		return types.LoginResponse{}, err
+		SendMessageWithRetries(ctx, b, config.ServerErrorText, chatID, config.MaxRetries)
+		fmt.Println(config.PostRequestConvertErrorText)
+		return nil, err
 	}
 	req, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewBuffer(data))
 	if err != nil {
-		return types.LoginResponse{}, err
+		SendMessageWithRetries(ctx, b, config.ServerErrorText, chatID, config.MaxRetries)
+		fmt.Print(config.PostRequestConvertErrorText)
+		return nil, err
 	}
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Accept", "application/json")
 	client := http.Client{Timeout: 10 * time.Second}
 	response, err := client.Do(req)
 	if err != nil {
-		return types.LoginResponse{}, err
+		SendMessageWithRetries(ctx, b, config.ServerErrorText, chatID, config.MaxRetries)
+		fmt.Println(config.PostRequestServerErrorText)
+		return nil, err
 	}
 	if response.StatusCode != 200 {
-		return types.LoginResponse{}, fmt.Errorf("login failed: %s", response.Status)
+		SendMessageWithRetries(ctx, b, config.ServerErrorText, chatID, config.MaxRetries)
+		fmt.Println(config.StatusRequestErrorText)
+		return nil, err
 	}
-	cookie := response.Cookies()
+	return response, nil
+}
+
+func getUserTokens(ctx context.Context, b *bot.Bot, update *models.Update, response http.Response) (string, string, error) {
+	cookie, chatID := response.Cookies(), update.Message.Chat.ID
 	var cookies []http.Cookie
 	for _, cookie := range cookie {
 		cookies = append(cookies, *cookie)
 	}
 	rememberMeToken, err := getTokenFromCookie(cookies, "rememberMe")
 	if err != nil {
-		return types.LoginResponse{}, err
+		SendMessageWithRetries(ctx, b, config.ServerErrorText, chatID, config.MaxRetries)
+		fmt.Println(config.GetRememberMeErrorText)
+		return "", "", err
 	}
 	phpSessionToken, err := getTokenFromCookie(cookies, "php_session")
 	if err != nil {
-		return types.LoginResponse{}, err
+		SendMessageWithRetries(ctx, b, config.ServerErrorText, chatID, config.MaxRetries)
+		fmt.Print(config.GetPhpSessionErrorText)
+		return "", "", err
 	}
-	return types.LoginResponse{
-		RememberMe: rememberMeToken,
-		PhpSession: phpSessionToken,
-	}, nil
+	return rememberMeToken, phpSessionToken, nil
+}
+
+func LoginLk(ctx context.Context, b *bot.Bot, update *models.Update) {
+	chatID := update.Message.Chat.ID
+	login, password, err := getUserInfo(ctx, b, update)
+	if err != nil {
+		return
+	}
+	request := types.LoginRequest{
+		Login:      login,
+		Password:   password,
+		RememberMe: "1",
+	}
+	response, err := sendPostRequest(ctx, b, update, request)
+	if err != nil {
+		return
+	}
+	rememberMe, phpSession, err := getUserTokens(ctx, b, update, *response)
+	if err != nil {
+		return
+	}
+	if err := db.AddRememberMeToken(chatID, rememberMe); err != nil {
+		SendMessageWithRetries(ctx, b, config.ServerErrorText, chatID, config.MaxRetries)
+		fmt.Println(config.AddRememberMeDbErrorText)
+		return
+	}
+
+	if err := db.AddPhpSessionToken(chatID, phpSession); err != nil {
+		SendMessageWithRetries(ctx, b, config.ServerErrorText, chatID, config.MaxRetries)
+		fmt.Println(config.AddPhpSessionDbErrorText)
+		return
+	}
 }
 
 func LoginEdu(login int, password string) error {

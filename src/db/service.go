@@ -46,7 +46,7 @@ func UpdateActiveUsers(users map[string]string) error {
 
 func GetUsers(login int) (map[string]string, error) { return map[string]string{}, nil }
 
-func ExistUser(chatID int) (bool, error) { return true, nil }
+func ExistUser(chatID int64) (bool, error) { return true, nil }
 
 func AddLoginUser(number int) error {
 	return nil
@@ -71,10 +71,18 @@ func UpdateUserState(state string) error {
 	return nil
 }
 
-func GetUserPasswordLk(chatID int) (string, error) {
+func GetUserPasswordLk(chatID int64) (string, error) {
 	return "", nil
 }
 
-func GetUserLogin(chatID int) (string, error) {
+func GetUserLogin(chatID int64) (string, error) {
 	return "", nil
+}
+
+func AddRememberMeToken(chatID int64, rememberMe string) error {
+	return nil
+}
+
+func AddPhpSessionToken(chatID int64, phpSession string) error {
+	return nil
 }

@@ -26,7 +26,7 @@ schedule table
     day_of_week
     start_time
     end_time
-    subject
+    subjects
 
 deadlines table (
     login SERIAL PRIMARY KEY,
