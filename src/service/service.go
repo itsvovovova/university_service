@@ -144,9 +144,8 @@ func LoginLk(ctx context.Context, b *bot.Bot, update *models.Update) {
 
 func LoginEdu(login int, password string) error {
 	// here we are trying to access the website
-	return nil
+	return nil // TODO: доделать..........
 }
-
 func SendMessageWithRetries(ctx context.Context, b *bot.Bot, message string, chatID int64, retries int) {
 	for i := 0; i < retries; i++ {
 		if _, err := b.SendMessage(ctx, &bot.SendMessageParams{

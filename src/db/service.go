@@ -1,5 +1,50 @@
 package db
 
+func AddLoginUser(chatID int64, login int) error {
+	var query = "INSERT INTO users(chat_id, login) VALUES ($1, $2)"
+	if _, err := db.Exec(query, chatID, login); err != nil {
+		return err
+	}
+	return nil
+}
+
+func AddPasswordLkUser(password string) error {
+	var query = "INSERT INTO users(password_lk, last_update) VALUES ($1, CURRENT_DATE)"
+	if _, err := db.Exec(query, password); err != nil {
+		return err
+	}
+	return nil
+}
+
+func AddPasswordEduUser(password string) error {
+	var query = "INSERT INTO users(password_edu, last_update) VALUES ($1, CURRENT_DATE)"
+	if _, err := db.Exec(query, password); err != nil {
+		return err
+	}
+	return nil
+}
+
+func GetActiveUsers() (int, error) {
+	var count int
+	err := db.QueryRow("SELECT COUNT(*) FROM users").Scan(&count)
+	if err != nil {
+		return 0, err
+	}
+	return count, nil
+}
+
+func AddUserSchedule(login int, schedule map[string][7]string) error {
+	return nil
+}
+
+func AddUserDeadlines(login int) error {
+	return nil
+}
+
+func AddUserScore() error {
+	return nil
+}
+
 func GetUserSchedule(chatID int64) (map[string]string, error) {
 	return map[string]string{}, nil
 }
@@ -8,28 +53,8 @@ func GetUserDeadlines(login int) (map[string]string, error) {
 	return map[string]string{}, nil
 }
 
-func GetActiveUsers() (int, error) {
-	return 0, nil
-}
-
 func GetUserScore() (map[string]string, error) {
 	return map[string]string{}, nil
-}
-
-func AddUserSchedule(login int) error {
-	return nil
-}
-
-func AddUserDeadlines(login int) error {
-	return nil
-}
-
-func AddActiveUsers() error {
-	return nil
-}
-
-func AddUserScore() error {
-	return nil
 }
 
 func UpdateUserSchedule(login int, new_schedule map[string]string) error {
@@ -47,18 +72,6 @@ func UpdateActiveUsers(users map[string]string) error {
 func GetUsers(login int) (map[string]string, error) { return map[string]string{}, nil }
 
 func ExistUser(chatID int64) (bool, error) { return true, nil }
-
-func AddLoginUser(number int) error {
-	return nil
-}
-
-func AddPasswordLkUser(password string) error {
-	return nil
-}
-
-func AddPasswordEduUser(password string) error {
-	return nil
-}
 
 func AddUserInfo() {
 }

@@ -19,7 +19,7 @@ func Login(ctx context.Context, b *bot.Bot, update *models.Update) {
 			ctx, b, config.IncorrectLoginErrorText, update.Message.Chat.ID, config.MaxRetries)
 		return
 	}
-	if err = db.AddLoginUser(number); err != nil {
+	if err = db.AddLoginUser(update.Message.Chat.ID, number); err != nil {
 		service.SendMessageWithRetries(
 			ctx, b, config.ServerErrorText, update.Message.Chat.ID, config.MaxRetries)
 		fmt.Println(config.LoginDbErrorText)
