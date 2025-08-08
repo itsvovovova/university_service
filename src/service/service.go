@@ -117,10 +117,8 @@ func LoginLk(ctx context.Context, b *bot.Bot, update *models.Update) {
 		return
 	}
 	request := types.LoginRequest{
-		User: types.User{
-			Login:    login,
-			Password: password,
-		},
+		Login:      login,
+		Password:   password,
 		RememberMe: "1",
 	}
 	response, err := sendPostRequest(ctx, b, update, request)
@@ -159,4 +157,12 @@ func SendMessageWithRetries(ctx context.Context, b *bot.Bot, message string, cha
 			return
 		}
 	}
+}
+
+func ComparisonScore(user types.User, response http.Response) ([]types.Score, error) {
+	return nil, nil
+}
+
+func ConvertToNotifications(oldData []types.Score, sliceScores []types.Score) []types.Notification {
+	return nil
 }

@@ -1,35 +1,52 @@
 package types
 
-type User struct {
-	Login    string
-	Password string
-}
+import "time"
+
 type LoginRequest struct {
-	User       User
+	Login      string
+	Password   string
 	RememberMe string
 }
 
-type LoginResponse struct {
-	RememberMe string
-	PhpSession string
+type User struct {
+	ChatID int64
+	Login  string
 }
 
 type Schedule struct {
-	Login       int
-	CurrentDate string
-	PairNumber  int
-	subject     string
+	Login        string
+	ScheduleDate time.Time
+	DayOfWeek    int
+	WeekNumber   int
+	PairNumber   int
+	Subject      string
+	StartTime    string
+	EndTime      string
+	Auditory     string
+	Teacher      string
 }
 
 type Deadline struct {
-	Login        int
-	CurrentDate  string
+	ID           int
+	Login        string
+	TaskName     string
+	DeadlineDate time.Time
 	Subject      string
-	DeadlineDate string
+	IsCompleted  bool
+}
+
+type Notification struct {
+	ID      int
+	UserID  int64
+	Type    string
+	Title   string
+	Message string
+	IsSent  bool
 }
 
 type Score struct {
-	Login    int
+	Login    string
+	ChatID   int64
 	Subject  string
 	Score    int
 	MaxScore int
