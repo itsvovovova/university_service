@@ -117,8 +117,10 @@ func LoginLk(ctx context.Context, b *bot.Bot, update *models.Update) {
 		return
 	}
 	request := types.LoginRequest{
-		Login:      login,
-		Password:   password,
+		User: types.User{
+			Login:    login,
+			Password: password,
+		},
 		RememberMe: "1",
 	}
 	response, err := sendPostRequest(ctx, b, update, request)

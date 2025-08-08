@@ -5,126 +5,182 @@ import (
 	"fmt"
 	_ "github.com/lib/pq"
 	"log"
+	"time"
 	"university_bot/config"
 )
 
-var db *sql.DB
+var DB *sql.DB
 
-func InitDb() {
-	var connectionStr = fmt.Sprintf(
-		"port=%s host=%s user=%s password=%s dbname=%s sslmode=%s",
-		config.CurrentConfig.Database.Port,
+func InitDB() error {
+	connectionStr := fmt.Sprintf(
+		"host=%s port=%s user=%s password=%s dbname=%s sslmode=%s",
 		config.CurrentConfig.Database.Host,
+		config.CurrentConfig.Database.Port,
 		config.CurrentConfig.Database.Username,
 		config.CurrentConfig.Database.Password,
 		config.CurrentConfig.Database.DatabaseName,
 		config.CurrentConfig.Database.SSLMode)
 
 	var err error
-	db, err = sql.Open("postgres", connectionStr)
+	DB, err = sql.Open("postgres", connectionStr)
 	if err != nil {
-		log.Fatal(err)
-		return
+		return fmt.Errorf("не удалось подключиться к базе данных: %w", err)
 	}
 
-	defer func(db *sql.DB) {
-		err := db.Close()
-		if err != nil {
-			log.Fatal(err)
+	DB.SetMaxOpenConns(25)
+	DB.SetMaxIdleConns(25)
+	DB.SetConnMaxLifetime(5 * time.Minute)
+
+	if err = DB.Ping(); err != nil {
+		return fmt.Errorf("не удалось пингануть базу данных: %w", err)
+	}
+
+	log.Println("Successfully connected to database")
+
+	if err := createUsersTable(); err != nil {
+		return err
+	}
+
+	if err := createScheduleTable(); err != nil {
+		return err
+	}
+
+	if err := createDeadlinesTable(); err != nil {
+		return err
+	}
+
+	if err := createNotificationsTable(); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func CloseDB() error {
+	if DB != nil {
+		return DB.Close()
+	}
+	return nil
+}
+
+func createUsersTable() error {
+	_, err := DB.Exec(`
+		CREATE TABLE IF NOT EXISTS users (
+			chat_id BIGINT PRIMARY KEY,
+			state VARCHAR(20) NOT NULL CHECK (state IN ('login', 'passwordLk', 'passwordEdu', 'success')),
+			login VARCHAR(50) UNIQUE,
+			password_edu VARCHAR(255),
+			password_lk VARCHAR(255),
+			last_update TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+		);
+	`)
+	if err != nil {
+		return fmt.Errorf("не удалось создать таблицу users: %w", err)
+	}
+	return nil
+}
+
+func createScheduleTable() error {
+	_, err := DB.Exec(`
+		CREATE TABLE IF NOT EXISTS schedule (
+			id SERIAL PRIMARY KEY,
+			user_id BIGINT NOT NULL REFERENCES users(chat_id),
+			schedule_date DATE NOT NULL,
+			day_of_week SMALLINT CHECK (day_of_week BETWEEN 1 AND 7),
+			week_number SMALLINT,
+			pair_number SMALLINT NOT NULL CHECK (pair_number BETWEEN 1 AND 7),
+			subject VARCHAR(255) NOT NULL,
+			start_time TIME,
+			end_time TIME,
+			auditory VARCHAR(50),
+			teacher VARCHAR(100),
+			UNIQUE(user_id, schedule_date, pair_number)
+		);
+	`)
+	if err != nil {
+		return fmt.Errorf("не удалось создать таблицу schedule: %w", err)
+	}
+
+	indexes := []string{
+		"CREATE INDEX IF NOT EXISTS idx_schedule_user ON schedule(user_id)",
+		"CREATE INDEX IF NOT EXISTS idx_schedule_date ON schedule(schedule_date)",
+		"CREATE INDEX IF NOT EXISTS idx_schedule_user_week ON schedule(user_id, week_number)",
+	}
+
+	for _, query := range indexes {
+		if _, err := DB.Exec(query); err != nil {
+			return fmt.Errorf("не удалось создать индекс: %w", err)
 		}
-	}(db)
-
-	err = db.Ping()
-	if err != nil {
-		log.Fatal(err)
-		return
 	}
 
-	fmt.Println("Connected to database")
+	return nil
+}
 
-	_, err = db.Exec(`
-    CREATE TABLE IF NOT EXISTS users (
-        chat_id BIGINT PRIMARY KEY,
-        state VARCHAR(20) NOT NULL CHECK (state IN ('login', 'passwordLk', 'passwordEdu', 'success')),
-        login INT,
-        password_edu VARCHAR(255),
-        password_lk VARCHAR(255),
-        last_update TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    );
-`)
+func createDeadlinesTable() error {
+	_, err := DB.Exec(`
+		CREATE TABLE IF NOT EXISTS deadlines (
+			id SERIAL PRIMARY KEY,
+			user_id BIGINT NOT NULL REFERENCES users(chat_id),
+			task_name VARCHAR(255) NOT NULL,
+			deadline_date DATE NOT NULL,
+			subject VARCHAR(255),
+			description TEXT,
+			priority SMALLINT DEFAULT 3 CHECK (priority BETWEEN 1 AND 5),
+			is_completed BOOLEAN DEFAULT FALSE,
+			notification_sent BOOLEAN DEFAULT FALSE,
+			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+			updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+		);
+	`)
 	if err != nil {
-		log.Fatal(err)
-		return
+		return fmt.Errorf("не удалось создать таблицу deadlines: %w", err)
 	}
 
-	// Create schedule table
-	_, err = db.Exec(`
-    CREATE TABLE IF NOT EXISTS schedule (
-        id SERIAL PRIMARY KEY,
-        chat_id BIGINT REFERENCES users(chat_id) ON DELETE CASCADE,
-        week_start DATE NOT NULL,
-        day_of_week INTEGER NOT NULL CHECK (day_of_week BETWEEN 1 AND 7),
-        pair_number INTEGER NOT NULL CHECK (pair_number BETWEEN 1 AND 7),
-        subject VARCHAR(255) NOT NULL,
-        UNIQUE(chat_id, week_start, day_of_week, pair_number)
-    );
-`)
-	if err != nil {
-		log.Fatal(err)
-		return
+	indexes := []string{
+		"CREATE INDEX IF NOT EXISTS idx_deadlines_user ON deadlines(user_id)",
+		"CREATE INDEX IF NOT EXISTS idx_deadlines_date ON deadlines(deadline_date)",
+		"CREATE INDEX IF NOT EXISTS idx_deadlines_user_incomplete ON deadlines(user_id) WHERE is_completed = FALSE",
 	}
 
-	_, err = db.Exec(`
-    CREATE INDEX IF NOT EXISTS idx_schedule_user_week 
-    ON schedule (chat_id, week_start);
-`)
-	if err != nil {
-		log.Fatal(err)
-		return
+	for _, query := range indexes {
+		if _, err := DB.Exec(query); err != nil {
+			return fmt.Errorf("не удалось создать индекс в таблице deadlines: %w", err)
+		}
 	}
 
-	_, err = db.Exec(`
-    CREATE INDEX IF NOT EXISTS idx_schedule_user_day 
-    ON schedule (chat_id, week_start, day_of_week);
-`)
+	return nil
+}
+
+func createNotificationsTable() error {
+	_, err := DB.Exec(`
+		CREATE TABLE IF NOT EXISTS notifications (
+			id SERIAL PRIMARY KEY,
+			user_id BIGINT NOT NULL REFERENCES users(chat_id),
+			type_notification VARCHAR(50) NOT NULL CHECK (
+				type_notification IN ('update_schedule', 'update_scores', 'update_deadlines')
+			),
+			title VARCHAR(255),
+			message TEXT NOT NULL,
+			is_sent BOOLEAN DEFAULT FALSE,
+			sent_at TIMESTAMP,
+			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+			read_at TIMESTAMP
+		);
+	`)
 	if err != nil {
-		log.Fatal(err)
-		return
+		return fmt.Errorf("не удалось создать таблицу notification: %w", err)
 	}
 
-	_, err = db.Exec(`
-    CREATE TABLE IF NOT EXISTS deadlines (
-        id SERIAL PRIMARY KEY,
-        chat_id BIGINT REFERENCES users(chat_id) ON DELETE CASCADE,
-        task_name VARCHAR(255) NOT NULL,
-        date_value DATE NOT NULL,
-        subject VARCHAR(255),
-        is_completed BOOLEAN DEFAULT FALSE,
-        notification_sent BOOLEAN DEFAULT FALSE,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    );
-`)
-	if err != nil {
-		log.Fatal(err)
-		return
+	indexes := []string{
+		"CREATE INDEX IF NOT EXISTS idx_notifications_user ON notifications(user_id)",
+		"CREATE INDEX IF NOT EXISTS idx_notifications_unsent ON notifications(user_id) WHERE is_sent = FALSE",
 	}
 
-	_, err = db.Exec(`
-    CREATE INDEX IF NOT EXISTS idx_deadlines_user_date 
-    ON deadlines (chat_id, date_value);
-`)
-	if err != nil {
-		log.Fatal(err)
-		return
+	for _, query := range indexes {
+		if _, err := DB.Exec(query); err != nil {
+			return fmt.Errorf("не удалось создать индекс: %w", err)
+		}
 	}
 
-	_, err = db.Exec(`
-    CREATE INDEX IF NOT EXISTS idx_deadlines_incomplete 
-    ON deadlines (chat_id, is_completed, date_value);
-`)
-	if err != nil {
-		log.Fatal(err)
-		return
-	}
-	return
+	return nil
 }

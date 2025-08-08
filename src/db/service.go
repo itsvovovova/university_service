@@ -1,5 +1,7 @@
 package db
 
+import "university_bot/src/types"
+
 func AddLoginUser(chatID int64, login int) error {
 	var query = "INSERT INTO users(chat_id, login) VALUES ($1, $2)"
 	if _, err := db.Exec(query, chatID, login); err != nil {
@@ -98,4 +100,8 @@ func AddRememberMeToken(chatID int64, rememberMe string) error {
 
 func AddPhpSessionToken(chatID int64, phpSession string) error {
 	return nil
+}
+
+func GetAllUsers() ([]types.User, error) {
+	return nil, nil
 }
